@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<invoice>
+  <customer>
+    <name>Jason Harrop, http://www.plutext.com/</name>
+  </customer>
+  <items>
+    <item>
+      <name>apples</name>
+      <price>$20</price>
+    </item>
+    <item>
+      <name>figs</name>
+      <price>$30</price>
+    </item>
+    <item>
+      <name>blueberries</name>
+      <price>$40</price>
+    </item>
+  </items>
+  <misc>
+    <includeBankDetails>true</includeBankDetails>
+    <wantspam>false</wantspam>
+  </misc>
+</invoice>

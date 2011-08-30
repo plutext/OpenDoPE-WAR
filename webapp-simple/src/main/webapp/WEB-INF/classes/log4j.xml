@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	
+<!-- To see log output when running samples from within Eclipse, 
+	 in the Eclipse run dialog, arguments tab, enter the following
+	 as a program argument:
+	
+	     -Dlog4j.configuration=src/main/resources/log4j.xml
+	
+	--> 	
+
+    <!-- ====================================================================== -->
+    <!-- A P P E N D E R S                                                      -->
+    <!-- ====================================================================== -->
+
+    <!-- console -->
+    <appender name="console" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{dd.MM.yyyy HH:mm:ss} *%-5p* %c{1}: %m (%F, line %L)%n"/>
+        </layout>
+    </appender>
+
+    <!-- error.log -->
+    <appender name="error" class="org.apache.log4j.FileAppender">
+        <param name="File" value="logs/docx4j.log"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{dd.MM.yyyy HH:mm:ss} *%-5p* %c{1}: %m (%F, line %L)%n"/>
+        </layout>
+    </appender>
+
+    <!-- ====================================================================== -->
+    <!-- L O G G E R S                                                          -->
+    <!-- ====================================================================== -->
+
+    <logger name="org.opendope.webapp.SubmitBoth">
+  		<level value="debug"/>  <!--  set this to debug if you want to save the docx as it is processed --> 
+	</logger>	
+
+    <logger name="org.apache.commons">
+  		<level value="warn"/> 
+	</logger>
+
+    <logger name="org.docx4j">
+  		<level value="error"/> 
+	</logger>	
+
+    <logger name="org.docx4j.context">
+  		<level value="info"/> 
+	</logger>	
+	
+    <logger name="org.opendope">
+  		<level value="info"/> 
+	</logger>	
+
+    <logger name="org.jboss.resteasy">
+  		<level value="debug"/> 
+	</logger>	
+  
+    <root>
+        <level value="info" />
+        <appender-ref ref="console"/>
+        <!-- <appender-ref ref="error"/> -->
+    </root>
+
+</log4j:configuration>
