@@ -29,6 +29,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -36,6 +37,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -71,7 +73,9 @@ public class SubmitBoth {
 	private static Logger log = Logger.getLogger(SubmitBoth.class);		
 	
 	static {
-		// Convert hyperlinks, using this style
+		// Convert hyperlinks, using this style; 
+		// this is here because reading the init-params isn't currently working
+		// in this resteasy branch
 		BindingHandler.setHyperlinkStyle("Hyperlink");
 	}
 		
@@ -117,10 +121,28 @@ public class SubmitBoth {
 	@Consumes("multipart/form-data")
 	@Produces( {"application/vnd.openxmlformats-officedocument.wordprocessingml.document" , 
 				"text/html"})
-	public Response processForm(MultipartFormDataInput input, @QueryParam("format") String format ) throws Docx4JException, IOException {
+	public Response processForm(@Context ServletContext servletContext, 
+			MultipartFormDataInput input, @QueryParam("format") String format ) throws Docx4JException, IOException {
 		
 		log.info("requested format: " + format);
-				
+		
+		// resteasy doesn't seem to read init params: https://issues.jboss.org/browse/RESTEASY-594
+		// (which is why this is now a branch and the master uses Jersey)
+		log.info("gip" + servletContext.getInitParameter("HtmlImageTargetUri") );
+		java.util.Enumeration penum = servletContext.getInitParameterNames();
+		for ( ; penum.hasMoreElements() ;) {
+			String name = (String)penum.nextElement();
+			log.info( name + "=" +  servletContext.getInitParameter(name) );
+		}
+
+		
+//		String htmlImageDirPath = servletContext.getInitParameter("HtmlImageDirPath");
+//		String htmlImageTargetUri = servletContext.getInitParameter("HtmlImageTargetUri");
+		
+		// so:
+		String htmlImageDirPath = "/apache-tomcat-7.0.20/webapps/OpenDoPE-simple";
+		String htmlImageTargetUri = "/OpenDoPE-simple/";
+						
 		final WordprocessingMLPackage wordMLPackage;
 		String docxname = "";
 
@@ -192,6 +214,8 @@ public class SubmitBoth {
 					Status.UNSUPPORTED_MEDIA_TYPE);
 		}
 		customXmlDataStoragePart.getData().setDocument(xis);
+//		java.lang.NullPointerException
+//		org.docx4j.openpackaging.parts.XmlPart.setDocument(XmlPart.java:129)		
 
 		final SaveToZipFile saver = new SaveToZipFile(wordMLPackage);
 		
@@ -212,6 +236,8 @@ public class SubmitBoth {
 					+ "/" + filePrefix + "_BOUND.docx"); 
 			saver.save(save_bound);
 			log.debug("Saved: " + save_bound);
+			// NB if hyperlinks were inserted, this docx won't open in Word.
+			// but it may be useful for diagnosing issues in processing
 			
 //			System.out.println(
 //			XmlUtils.marshaltoString(wordMLPackage.getMainDocumentPart().getJaxbElement(), true, true)
@@ -233,8 +259,8 @@ public class SubmitBoth {
 			// Return html
 			final AbstractHtmlExporter exporter = new HtmlExporterNG2(); 	
 	    	final HtmlSettings htmlSettings = new HtmlSettings();
-	    		// NB: as it stands, this quick html demo isn't intended to handle images
-	    		// and hasn't been tested with them
+	    	htmlSettings.setImageDirPath(htmlImageDirPath);	    	
+			htmlSettings.setImageTargetUri(htmlImageTargetUri); 
 	
 			ResponseBuilder builder = Response.ok(
 			

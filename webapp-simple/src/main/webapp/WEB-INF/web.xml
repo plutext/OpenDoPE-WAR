@@ -10,6 +10,20 @@
     <servlet>
         <servlet-name>Resteasy</servlet-name>
         <servlet-class>org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher</servlet-class>
+        
+          <init-param>
+        	<param-name>HtmlImageTargetUri</param-name>
+        	<param-value>/OpenDoPE-simple/</param-value>
+        </init-param>
+	  	<init-param>
+        	<param-name>HtmlImageDirPath</param-name>
+        	<param-value>/apache-tomcat-7.0.20/webapps/OpenDoPE-simple/</param-value>
+        </init-param>
+        <init-param>
+        	<param-name>HyperlinkStyleId</param-name>
+        	<param-value>Hyperlink</param-value>
+        </init-param>
+        
     </servlet>
 
     <servlet-mapping>
