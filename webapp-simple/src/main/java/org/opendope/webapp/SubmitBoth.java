@@ -29,6 +29,9 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -36,6 +39,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -56,9 +60,14 @@ import org.docx4j.openpackaging.io.LoadFromZipNG;
 import org.docx4j.openpackaging.io.SaveToZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.CustomXmlDataStoragePart;
-import org.jboss.resteasy.plugins.providers.multipart.InputPart;
-import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
+//import org.jboss.resteasy.plugins.providers.multipart.InputPart;
+//import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 import org.opendope.CustomXmlUtils;
+
+import com.sun.jersey.core.header.FormDataContentDisposition;
+import com.sun.jersey.multipart.FormDataBodyPart;
+import com.sun.jersey.multipart.FormDataMultiPart;
+import com.sun.jersey.multipart.FormDataParam;
 
 @Path("/both")  // must match form action
 public class SubmitBoth {
@@ -69,12 +78,30 @@ public class SubmitBoth {
 	public static JAXBContext context = org.docx4j.jaxb.Context.jc; 
 	
 	private static Logger log = Logger.getLogger(SubmitBoth.class);		
+
+    @Context ServletConfig servletConfig;
+    //@Context ServletContext servletContext;
+    
+    static String hyperlinkStyleId;
+    static String htmlImageTargetUri;
+    static String htmlImageDirPath;
+    
+    @PostConstruct
+    public void readInitParams() {
+    	
+    	// This works with and without class extends Application
+       
+    	log.info( servletConfig.getInitParameter("HyperlinkStyleId") );
+    	log.info( servletConfig.getInitParameter("HtmlImageTargetUri") );
+    	log.info( servletConfig.getInitParameter("HtmlImageDirPath") );
+    	
+        hyperlinkStyleId = servletConfig.getInitParameter("HyperlinkStyleId");
+        htmlImageTargetUri = servletConfig.getInitParameter("HtmlImageTargetUri");
+        htmlImageDirPath = servletConfig.getInitParameter("HtmlImageDirPath");
+    	
+    }     
 	
-	static {
-		// Convert hyperlinks, using this style
-		BindingHandler.setHyperlinkStyle("Hyperlink");
-	}
-		
+	
 	/**
 	 * Display a form in which user can provide OpenDoPE docx template,
 	 * and xml data file, for processing.  Useful for testing.
@@ -117,54 +144,43 @@ public class SubmitBoth {
 	@Consumes("multipart/form-data")
 	@Produces( {"application/vnd.openxmlformats-officedocument.wordprocessingml.document" , 
 				"text/html"})
-	public Response processForm(MultipartFormDataInput input, @QueryParam("format") String format ) throws Docx4JException, IOException {
+	public Response processForm(
+			//@Context ServletContext servletContext, 
+			@FormDataParam("xmlfile") InputStream xis,
+			@FormDataParam("xmlfile") FormDataContentDisposition xmlFileDetail,
+			@FormDataParam("docx") InputStream docxInputStream,
+			@FormDataParam("docx") FormDataContentDisposition docxFileDetail,
+			@QueryParam("format") String format
+			) throws Docx4JException, IOException {
 		
 		log.info("requested format: " + format);
-				
-		final WordprocessingMLPackage wordMLPackage;
-		String docxname = "";
 
-		InputStream xis = null;
-		String dataname = "";
+//		log.info("gip" + servletContext.getInitParameter("HtmlImageTargetUri") );
+//		java.util.Enumeration penum = servletContext.getInitParameterNames();
+//		for ( ; penum.hasMoreElements() ;) {
+//			String name = (String)penum.nextElement();
+//			log.info( name + "=" +  servletContext.getInitParameter(name) );
+//		}
 		
-		Map<String, List<InputPart>> map = input.getFormDataMap();
+		final WordprocessingMLPackage wordMLPackage;
 
+		String dataname = getFileName(xmlFileDetail.getFileName());
+		
 		WordprocessingMLPackage tmpPkg=null;
-		for (String s : map.keySet()) {
-
-			if (s.equals(KEY_XML)) {
-				InputPart part = map.get(s).get(0);
-				
-				MultivaluedMap<String, String> header = part.getHeaders();
-				dataname = getFileName(header);
-				
-				try {
-					xis = part.getBody(InputStream.class,null);
-				} catch (IOException e) {
-					throw new WebApplicationException(
-							new Docx4JException("Error accepting xml data stream"), 
-							Status.BAD_REQUEST);
-				}
-			}
 			
-			if (s.equals(KEY_DOCX)) {
-				InputPart part = map.get(s).get(0);
-
-				MultivaluedMap<String, String> header = part.getHeaders();
-				docxname = getFileName(header);
-				
-				LoadFromZipNG loader = new LoadFromZipNG();
-				try {
-					tmpPkg = (WordprocessingMLPackage)loader.get(
-							part.getBody(InputStream.class,null) );
-				} catch (Exception e) {
-					throw new WebApplicationException(
-							new Docx4JException("Error reading docx file (is this a valid docx?)"), 
-							Status.BAD_REQUEST);
-				}
-			}
-			
+		String docxname = getFileName(docxFileDetail.getFileName());
+		
+		LoadFromZipNG loader = new LoadFromZipNG();
+		try {
+			tmpPkg = (WordprocessingMLPackage)loader.get(docxInputStream );
+		} catch (Exception e) {
+			throw new WebApplicationException(
+					new Docx4JException("Error reading docx file (is this a valid docx?)"), 
+					Status.BAD_REQUEST);
 		}
+			
+		
+		
 		// Now we should have both our docx and xml
 		if (tmpPkg==null) {
 			throw new WebApplicationException(
@@ -177,7 +193,7 @@ public class SubmitBoth {
 					Status.BAD_REQUEST);
 		}
 		wordMLPackage = tmpPkg;
-		String filePrefix = docxname + "_" + dataname + "_" + now("yyyyMMddHHmm"); // add ss or ssSSSS if you wish
+		String filePrefix = docxname + "_" + dataname + "_" + now("yyyyMMddHHmmss"); // add ss or ssSSSS if you wish
 				
 		// Find custom xml item id
 		String itemId = CustomXmlUtils.getCustomXmlItemId(wordMLPackage).toLowerCase();
@@ -192,6 +208,8 @@ public class SubmitBoth {
 					Status.UNSUPPORTED_MEDIA_TYPE);
 		}
 		customXmlDataStoragePart.getData().setDocument(xis);
+//		java.lang.NullPointerException
+//		org.docx4j.openpackaging.parts.XmlPart.setDocument(XmlPart.java:129)
 
 		final SaveToZipFile saver = new SaveToZipFile(wordMLPackage);
 		
@@ -206,12 +224,16 @@ public class SubmitBoth {
 		}
 		
 		// Apply the bindings
+		// Convert hyperlinks, using this style
+		BindingHandler.setHyperlinkStyle(hyperlinkStyleId);				
 		BindingHandler.applyBindings(wordMLPackage);
 		if (log.isDebugEnabled()) {			
 			File save_bound = new File( System.getProperty("java.io.tmpdir") 
 					+ "/" + filePrefix + "_BOUND.docx"); 
 			saver.save(save_bound);
 			log.debug("Saved: " + save_bound);
+			// NB if hyperlinks were inserted, this docx won't open in Word.
+			// but it may be useful for diagnosing issues in processing
 			
 //			System.out.println(
 //			XmlUtils.marshaltoString(wordMLPackage.getMainDocumentPart().getJaxbElement(), true, true)
@@ -233,8 +255,8 @@ public class SubmitBoth {
 			// Return html
 			final AbstractHtmlExporter exporter = new HtmlExporterNG2(); 	
 	    	final HtmlSettings htmlSettings = new HtmlSettings();
-	    		// NB: as it stands, this quick html demo isn't intended to handle images
-	    		// and hasn't been tested with them
+	    	htmlSettings.setImageDirPath(htmlImageDirPath);	    	
+			htmlSettings.setImageTargetUri(htmlImageTargetUri); 
 	
 			ResponseBuilder builder = Response.ok(
 			
@@ -285,26 +307,15 @@ public class SubmitBoth {
 	 * 	Content-Disposition=[form-data; name="file"; filename="filename.extension"]
 	 * }
 	 **/
-	private String getFileName(MultivaluedMap<String, String> header) {
+	private String getFileName(String name) {
  
-		String[] contentDisposition = header.getFirst("Content-Disposition").split(";");
-		 
-		for (String filename : contentDisposition) {
-			if ((filename.trim().startsWith("filename"))) {
- 
-				String[] name = filename.split("=");
- 
-				String finalFileName = name[1].trim().replaceAll("\"", "");
-				
-				if (finalFileName.lastIndexOf(".")==-1) {
-					return finalFileName;
-				} else {
-					return finalFileName.substring(0, finalFileName.lastIndexOf(".") ); 
-				}
-				
-			}
+		String finalFileName = name.trim().replaceAll("\"", "");
+		
+		if (finalFileName.lastIndexOf(".")==-1) {
+			return finalFileName;
+		} else {
+			return finalFileName.substring(0, finalFileName.lastIndexOf(".") ); 
 		}
-		return "unknown";
      }
 
 	public static String now(String dateFormat) {
