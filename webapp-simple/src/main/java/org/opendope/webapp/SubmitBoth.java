@@ -53,6 +53,7 @@ import org.docx4j.convert.out.html.AbstractHtmlExporter.HtmlSettings;
 import org.docx4j.convert.out.html.HtmlExporterNG2;
 import org.docx4j.model.datastorage.BindingHandler;
 import org.docx4j.model.datastorage.OpenDoPEHandler;
+import org.docx4j.model.datastorage.OpenDoPEIntegrity;
 import org.docx4j.model.datastorage.RemovalHandler;
 import org.docx4j.model.datastorage.RemovalHandler.Quantifier;
 import org.docx4j.openpackaging.exceptions.Docx4JException;
@@ -216,6 +217,10 @@ public class SubmitBoth {
 		// Process conditionals and repeats
 		OpenDoPEHandler odh = new OpenDoPEHandler(wordMLPackage);
 		odh.preprocess();
+
+		OpenDoPEIntegrity odi = new OpenDoPEIntegrity();
+		odi.process(wordMLPackage);
+		
 		if (log.isDebugEnabled()) {			
 			File save_preprocessed = new File( System.getProperty("java.io.tmpdir") 
 					+ "/" + filePrefix + "_INT.docx");
