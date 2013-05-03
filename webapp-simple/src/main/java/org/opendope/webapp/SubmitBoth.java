@@ -202,7 +202,7 @@ public class SubmitBoth {
 		
 		// Inject data_file.xml		
 		CustomXmlDataStoragePart customXmlDataStoragePart 
-			= wordMLPackage.getCustomXmlDataStorageParts().get(itemId);
+			= (CustomXmlDataStoragePart)wordMLPackage.getCustomXmlDataStorageParts().get(itemId);
 		if (customXmlDataStoragePart==null) {
 			throw new WebApplicationException(
 					new Docx4JException("Couldn't find CustomXmlDataStoragePart"), 

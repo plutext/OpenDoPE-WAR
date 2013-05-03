@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." default="build" name="webapp-simple">
+    <property environment="env"/>
+    <property name="ECLIPSE_HOME" value="../../../../../eclipse-jee-indigo-SR1-win32-x86_64/eclipse"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.6"/>
+    <property name="source" value="1.6"/>
+    <property name="xapp.app.name" value="OpenDoPE-simple" />    
+	<property name="version" value="20130331"/>
+	    
+	<property name="m2Repository" value="../../../.m2/repository"/>	
+    <path id="Maven Dependencies.libraryclasspath">
+        <pathelement location="docx4j-nightly-20130331.jar"/>
+        <pathelement location="${m2Repository}/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar"/>
+        <pathelement location="${m2Repository}/javax/mail/mail/1.4/mail-1.4.jar"/>
+        <pathelement location="${m2Repository}/javax/activation/activation/1.1/activation-1.1.jar"/>
+        <pathelement location="${m2Repository}/org/docx4j/xhtmlrenderer/1.0.1-SNAPSHOT/xhtmlrenderer-1.0.1-SNAPSHOT.jar"/>
+        <pathelement location="${m2Repository}/com/lowagie/itext/2.1.7/itext-2.1.7.jar"/>
+        <pathelement location="${m2Repository}/org/plutext/jaxb-svg11/1.0.2/jaxb-svg11-1.0.2.jar"/>
+        <pathelement location="${m2Repository}/org/plutext/jaxb-xslfo/1.0.1/jaxb-xslfo-1.0.1.jar"/>
+        <pathelement location="${m2Repository}/org/plutext/jaxb-xmldsig-core/1.0.0/jaxb-xmldsig-core-1.0.0.jar"/>
+        <pathelement location="${m2Repository}/log4j/log4j/1.2.15/log4j-1.2.15.jar"/>
+        <pathelement location="${m2Repository}/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>
+        <pathelement location="${m2Repository}/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar"/>
+        <pathelement location="${m2Repository}/commons-codec/commons-codec/1.3/commons-codec-1.3.jar"/>
+        <pathelement location="${m2Repository}/commons-io/commons-io/1.3.1/commons-io-1.3.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/xmlgraphics-commons/1.5/xmlgraphics-commons-1.5.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/fop/1.1/fop-1.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-svg-dom/1.7/batik-svg-dom-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-anim/1.7/batik-anim-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-css/1.7/batik-css-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-dom/1.7/batik-dom-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-parser/1.7/batik-parser-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-util/1.7/batik-util-1.7.jar"/>
+        <pathelement location="${m2Repository}/xml-apis/xml-apis/1.3.04/xml-apis-1.3.04.jar"/>
+        <pathelement location="${m2Repository}/xml-apis/xml-apis-ext/1.3.04/xml-apis-ext-1.3.04.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-bridge/1.7/batik-bridge-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-script/1.7/batik-script-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-js/1.7/batik-js-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-xml/1.7/batik-xml-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-awt-util/1.7/batik-awt-util-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-gvt/1.7/batik-gvt-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-transcoder/1.7/batik-transcoder-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-svggen/1.7/batik-svggen-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-extension/1.7/batik-extension-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/xmlgraphics/batik-ext/1.7/batik-ext-1.7.jar"/>
+        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-api/4.3.1/avalon-framework-api-4.3.1.jar"/>
+        <pathelement location="${m2Repository}/org/apache/avalon/framework/avalon-framework-impl/4.3.1/avalon-framework-impl-4.3.1.jar"/>
+        <pathelement location="${m2Repository}/xalan/xalan/2.7.1/xalan-2.7.1.jar"/>
+        <pathelement location="${m2Repository}/xalan/serializer/2.7.1/serializer-2.7.1.jar"/>
+        <pathelement location="${m2Repository}/net/arnx/wmf2svg/0.9.0/wmf2svg-0.9.0.jar"/>
+        <pathelement location="${m2Repository}/org/apache/poi/poi-scratchpad/3.8/poi-scratchpad-3.8.jar"/>
+        <pathelement location="${m2Repository}/org/apache/poi/poi/3.8/poi-3.8.jar"/>
+        <pathelement location="${m2Repository}/org/antlr/antlr-runtime/3.3/antlr-runtime-3.3.jar"/>
+        <pathelement location="${m2Repository}/org/antlr/stringtemplate/3.2.1/stringtemplate-3.2.1.jar"/>
+        <pathelement location="${m2Repository}/antlr/antlr/2.7.7/antlr-2.7.7.jar"/>
+        <pathelement location="${m2Repository}/junit/junit/3.8.1/junit-3.8.1.jar"/>
+        <pathelement location="${m2Repository}/com/sun/jersey/jersey-bundle/1.11/jersey-bundle-1.11.jar"/>
+        <pathelement location="${m2Repository}/javax/ws/rs/jsr311-api/1.1.1/jsr311-api-1.1.1.jar"/>
+        <pathelement location="${m2Repository}/asm/asm-commons/3.3.1/asm-commons-3.3.1.jar"/>
+        <pathelement location="${m2Repository}/asm/asm-tree/3.3.1/asm-tree-3.3.1.jar"/>
+        <pathelement location="${m2Repository}/asm/asm/3.3.1/asm-3.3.1.jar"/>
+        <pathelement location="${m2Repository}/javax/annotation/jsr250-api/1.0/jsr250-api-1.0.jar"/>
+        <pathelement location="${m2Repository}/com/sun/jersey/contribs/jersey-multipart/1.11/jersey-multipart-1.11.jar"/>
+        <pathelement location="${m2Repository}/org/jvnet/mimepull/1.6/mimepull-1.6.jar"/>
+        <pathelement location="${m2Repository}/com/sun/jersey/jersey-core/1.11/jersey-core-1.11.jar"/>
+    </path>
+    <path id="webapp-simple.classpath">
+        <pathelement location="target/classes"/>
+        <path refid="Maven Dependencies.libraryclasspath"/>
+    </path>
+    <target name="init">
+        <mkdir dir="target/classes"/>
+        <copy includeemptydirs="false" todir="target/classes">
+            <fileset dir="src/main/java">
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="target/classes"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="target/classes" source="${source}" target="${target}">
+            <src path="src/main/java"/>
+            <classpath refid="webapp-simple.classpath"/>
+        </javac>
+    </target>
+    
+	<target name="webapp" depends="clean, build-project">
+		
+		<!-- Copy web.xml etc -->
+        <copy includeemptydirs="false" todir="target/${xapp.app.name}/WEB-INF">
+            <fileset dir="src/main/webapp/WEB-INF"/>
+        </copy>
+				
+		<!-- Copy libs -->
+		<copy todir="target/${xapp.app.name}/WEB-INF/lib" flatten="true">
+			<!-- requires Ant 1.7.0 -->
+			<path>
+			    <path refid="Maven Dependencies.libraryclasspath"/>
+			</path>
+		</copy>		
+	
+		<jar destfile="target/${xapp.app.name}-${version}.war" basedir="target/${xapp.app.name}"/>		
+				
+	</target>
+	    
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+</project>
