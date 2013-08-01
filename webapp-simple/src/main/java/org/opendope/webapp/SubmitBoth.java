@@ -1,5 +1,5 @@
 /*
- *  Copyright 2010-11, Plutext Pty Ltd.
+ *  Copyright 2010-13, Plutext Pty Ltd.
  *   
  *  This file is part of OpenDoPE Java simple webapp.
 
@@ -26,8 +26,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.ServletConfig;
@@ -40,14 +41,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import javax.xml.bind.JAXBContext;
 
-import org.apache.log4j.Logger;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.docx4j.convert.in.xhtml.XHTMLImporter;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
 import org.docx4j.convert.out.html.AbstractHtmlExporter.HtmlSettings;
 import org.docx4j.convert.out.html.HtmlExporterNG2;
@@ -61,13 +63,12 @@ import org.docx4j.openpackaging.io.LoadFromZipNG;
 import org.docx4j.openpackaging.io.SaveToZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.CustomXmlDataStoragePart;
-//import org.jboss.resteasy.plugins.providers.multipart.InputPart;
-//import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
+import org.docx4j.wml.RFonts;
 import org.opendope.CustomXmlUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.core.header.FormDataContentDisposition;
-import com.sun.jersey.multipart.FormDataBodyPart;
-import com.sun.jersey.multipart.FormDataMultiPart;
 import com.sun.jersey.multipart.FormDataParam;
 
 @Path("/both")  // must match form action
@@ -78,7 +79,7 @@ public class SubmitBoth {
 
 	public static JAXBContext context = org.docx4j.jaxb.Context.jc; 
 	
-	private static Logger log = Logger.getLogger(SubmitBoth.class);		
+	private static Logger log = LoggerFactory.getLogger(SubmitBoth.class);		
 
     @Context ServletConfig servletConfig;
     //@Context ServletContext servletContext;
@@ -99,10 +100,32 @@ public class SubmitBoth {
         hyperlinkStyleId = servletConfig.getInitParameter("HyperlinkStyleId");
         htmlImageTargetUri = servletConfig.getInitParameter("HtmlImageTargetUri");
         htmlImageDirPath = servletConfig.getInitParameter("HtmlImageDirPath");
-    	
+        
     }     
 	
 	
+    private static Set<String> cssWhiteList = null;
+	private void initWhitelist() {
+		
+		if (cssWhiteList!=null) return; // done already
+		
+		try {
+			cssWhiteList = new HashSet<String>();
+			List lines = IOUtils.readLines(servletConfig.getServletContext().getResourceAsStream("/WEB-INF/CSS-WhiteList.txt"), "UTF-8" );
+			for (Object o : lines) {
+				String line = ((String)o).trim();
+				if (line.length()>0 && !line.startsWith("#")) {
+					cssWhiteList.add(line);
+				}
+			}
+			XHTMLImporter.setCssWhiteList(cssWhiteList);
+		} catch (IOException e) {
+			log.warn("CSS-WhiteList not found", e);
+		}
+		
+	}
+    
+    
 	/**
 	 * Display a form in which user can provide OpenDoPE docx template,
 	 * and xml data file, for processing.  Useful for testing.
@@ -111,7 +134,9 @@ public class SubmitBoth {
 	@GET
 	@Produces("text/html")
 	public String uploadForm() {
-		return "<html><head><title>OpenDoPE injection</title></head>"
+		return "<html><head>" 
+//				+"		<meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\" /> <!--  IE and Firefox need this -->"	
+				+"<title>OpenDoPE injection</title></head>"
 				+ "<body>"
 				
 				+ "<script type=\"text/javascript\">"
@@ -140,13 +165,70 @@ public class SubmitBoth {
 				+ "<input type=\"submit\" name=\"submit\" value=\"Submit\" /> "
 				+ "</form>" + "</body></html>";
 	}
+	
+	/*
+	 * From http://wiki.apache.org/tomcat/FAQ/CharacterEncoding
+	 * 
+	 * Default Encoding for POST
+
+		ISO-8859-1 is defined as the default character set for HTTP request and response 
+		bodies in the servlet specification (request encoding: section 4.9 for 
+		spec version 2.4, section 3.9 for spec version 2.5; response encoding: 
+		section 5.4 for both spec versions 2.4 and 2.5). This default is historical: 
+		it comes from sections 3.4.1 and 3.7.1 of the HTTP/1.1 specification.
+		
+		Some notes about the character encoding of a POST request:
+		
+		Section 3.4.1 of HTTP/1.1 states that recipients of an HTTP message must respect 
+		the character encoding specified by the sender in the Content-Type header if the
+		 encoding is supported. A missing character allows the recipient to "guess" 
+		 what encoding is appropriate.
+		 
+		Most web browsers today do not specify the character set of a request, even when 
+		it is something other than ISO-8859-1. This seems to be in violation of the HTTP 
+		specification. Most web browsers appear to send a request body using the encoding 
+		of the page used to generate the POST (for instance, the <form> element came from 
+		a page with a specific encoding... it is that encoding which is used to submit the 
+		POST data for that form).
+		
+		-----------------------------------
+		
+		If you suspect character encoding problems, first check that UTF-8 is being used
+		in the build.
+		
+			Eclipse: 
+			
+			Window > Preferences > General > Workspace
+			Check that Text file encoding is UTF-8.
+			
+			go into Project properties > Resource.
+			Check that "text file encoding" is UTF-8 (either Inherited from container, or other).
+			
+		In Maven, you need <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		(on docx4j etc as well).
+		
+		If there are still problems, you might consider an XML data file containing UTF-8 characters ϣ • € ₩
+ 
+			 -Dfile.encoding=UTF-8 in Tomcat's setenv.bat doesn't seem to matter
+			
+			&lt;meta http-equiv="Content-type" content="text/html;charset=UTF-8" /&gt;   not required in escaped XHTML
+			
+			<meta http-equiv =\"Content-type\" content=\"text/html;charset =UTF-8\" />  not required in uploadForm() form above
+			
+			<?xml version='1.0' encoding='UTF-8'?> not even required on input xml file
+			
+			No need for org.apache.catalina.filters.SetCharacterEncodingFilter
+
+		
+	 */
 
 	@POST
 	@Consumes("multipart/form-data")
 	@Produces( {"application/vnd.openxmlformats-officedocument.wordprocessingml.document" , 
 				"text/html"})
 	public Response processForm(
-			//@Context ServletContext servletContext, 
+//			@Context ServletContext servletContext, 
+//			@Context  HttpServletRequest servletRequest,
 			@FormDataParam("xmlfile") InputStream xis,
 			@FormDataParam("xmlfile") FormDataContentDisposition xmlFileDetail,
 			@FormDataParam("docx") InputStream docxInputStream,
@@ -154,7 +236,16 @@ public class SubmitBoth {
 			@QueryParam("format") String format
 			) throws Docx4JException, IOException {
 		
-		log.info("requested format: " + format);
+//		log.info("servletRequest.getCharacterEncoding(): " + servletRequest.getCharacterEncoding());
+//		
+//		log.warn("platformt: " + getDefaultEncoding() );
+//		
+//		log.info("requested format: " + format);
+//		
+//		byte[] bytes = IOUtils.toByteArray(xis);
+//		File f = new File( System.getProperty("java.io.tmpdir") + "/xml.xml");
+//		FileUtils.writeByteArrayToFile(f, bytes); 
+//		log.info("Saved: " + f.getAbsolutePath());
 
 //		log.info("gip" + servletContext.getInitParameter("HtmlImageTargetUri") );
 //		java.util.Enumeration penum = servletContext.getInitParameterNames();
@@ -162,6 +253,13 @@ public class SubmitBoth {
 //			String name = (String)penum.nextElement();
 //			log.info( name + "=" +  servletContext.getInitParameter(name) );
 //		}
+		
+		// For XHTML Import, only honour CSS on the white list
+		initWhitelist();
+		
+		// XHTML Import: no need to add a mapping, if docx defaults are to be used
+		//addFontMapping(String cssFontFamily, RFonts rFonts)
+		
 		
 		final WordprocessingMLPackage wordMLPackage;
 
@@ -209,6 +307,10 @@ public class SubmitBoth {
 					Status.UNSUPPORTED_MEDIA_TYPE);
 		}
 		customXmlDataStoragePart.getData().setDocument(xis);
+	
+//		customXmlDataStoragePart.getData().setDocument(new ByteArrayInputStream(bytes));
+		
+		
 //		java.lang.NullPointerException
 //		org.docx4j.openpackaging.parts.XmlPart.setDocument(XmlPart.java:129)
 
@@ -221,11 +323,15 @@ public class SubmitBoth {
 		OpenDoPEIntegrity odi = new OpenDoPEIntegrity();
 		odi.process(wordMLPackage);
 		
-		if (log.isDebugEnabled()) {			
-			File save_preprocessed = new File( System.getProperty("java.io.tmpdir") 
-					+ "/" + filePrefix + "_INT.docx");
-			saver.save(save_preprocessed);
-			log.debug("Saved: " + save_preprocessed);
+		if (log.isDebugEnabled()) {		
+			try {
+				File save_preprocessed = new File( System.getProperty("java.io.tmpdir") 
+						+ "/" + filePrefix + "_INT.docx");
+				saver.save(save_preprocessed);
+				log.debug("Saved: " + save_preprocessed);
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+			}
 		}
 		
 		// Apply the bindings
@@ -233,12 +339,14 @@ public class SubmitBoth {
 		BindingHandler.setHyperlinkStyle(hyperlinkStyleId);				
 		BindingHandler.applyBindings(wordMLPackage);
 		if (log.isDebugEnabled()) {			
-			File save_bound = new File( System.getProperty("java.io.tmpdir") 
-					+ "/" + filePrefix + "_BOUND.docx"); 
-			saver.save(save_bound);
-			log.debug("Saved: " + save_bound);
-			// NB if hyperlinks were inserted, this docx won't open in Word.
-			// but it may be useful for diagnosing issues in processing
+			try {
+				File save_bound = new File( System.getProperty("java.io.tmpdir") 
+						+ "/" + filePrefix + "_BOUND.docx"); 
+				saver.save(save_bound);
+				log.debug("Saved: " + save_bound);
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+			}
 			
 //			System.out.println(
 //			XmlUtils.marshaltoString(wordMLPackage.getMainDocumentPart().getJaxbElement(), true, true)
@@ -249,11 +357,15 @@ public class SubmitBoth {
 		// if you are processing hyperlinks
 		RemovalHandler rh = new RemovalHandler();
 		rh.removeSDTs(wordMLPackage, Quantifier.ALL);
-		if (log.isDebugEnabled()) {			
-			File save = new File( System.getProperty("java.io.tmpdir") 
-					+ "/" + filePrefix + "_STRIPPED.docx"); 
-			saver.save(save);
-			log.debug("Saved: " + save);
+		if (log.isDebugEnabled()) {
+			try {
+				File save = new File( System.getProperty("java.io.tmpdir") 
+						+ "/" + filePrefix + "_STRIPPED.docx"); 
+				saver.save(save);
+				log.debug("Saved: " + save);
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+			}
 		}		
 				
 		if (format!=null && format.equals("html") ) {		
@@ -328,5 +440,25 @@ public class SubmitBoth {
 		SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
 		return sdf.format(cal.getTime());
 	}
+	
+//    public static String getDefaultEncoding() {
+//    	
+////    	try {
+////        	System.setProperty("file.encoding","UTF-8");
+////        	Field charset = Charset.class.getDeclaredField("defaultCharset");
+////        	charset.setAccessible(true);
+////			charset.set(null,null);
+////		} catch (Exception e) {
+////			// TODO Auto-generated catch block
+////			e.printStackTrace();
+////		}  	
+//    	
+//    	byte [] byteArray = {'a'}; 
+//    	InputStream inputStream = new ByteArrayInputStream(byteArray); 
+//    	InputStreamReader reader = new InputStreamReader(inputStream); 
+//    	return reader.getEncoding();     	
+//    	
+//    }
+	
 	
 }

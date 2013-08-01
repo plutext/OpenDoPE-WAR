@@ -34,7 +34,7 @@
     <!-- ====================================================================== -->
 
     <logger name="org.opendope.webapp.SubmitBoth">
-  		<level value="debug"/>  <!--  set this to debug if you want to save the docx as it is processed --> 
+  		<level value="info"/>  <!--  set this to debug if you want to save the docx as it is processed --> 
 	</logger>	
 
     <logger name="org.apache.commons">
@@ -51,10 +51,6 @@
 	
     <logger name="org.opendope">
   		<level value="info"/> 
-	</logger>	
-
-    <logger name="org.jboss.resteasy">
-  		<level value="debug"/> 
 	</logger>	
   
     <root>

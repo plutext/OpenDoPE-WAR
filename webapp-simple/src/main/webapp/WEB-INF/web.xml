@@ -3,7 +3,22 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
 	<display-name>OpenDoPE</display-name>
-
+	
+<!-- 	
+<filter>
+    <filter-name>CharacterEncodingFilter</filter-name>
+    <filter-class>org.apache.catalina.filters.SetCharacterEncodingFilter</filter-class>
+    <init-param>
+        <param-name>encoding</param-name>
+        <param-value>UTF-8</param-value>
+    </init-param>
+    <init-param>
+        <param-name>ignore</param-name>
+        <param-value>false</param-value>
+    </init-param>
+</filter>	
+	  -->
+  
 	<servlet>
 		<servlet-name>Jersey REST Service</servlet-name>
 		<servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
@@ -30,4 +45,10 @@
 		<servlet-name>Jersey REST Service</servlet-name>
 		<url-pattern>/service/*</url-pattern>
 	</servlet-mapping>
+<!-- 	
+	<filter-mapping>
+	    <filter-name>CharacterEncodingFilter</filter-name>
+		<url-pattern>/service/*</url-pattern>
+	</filter-mapping>
+	  -->
 </web-app>

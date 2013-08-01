@@ -11,15 +11,22 @@
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
     <property name="xapp.app.name" value="OpenDoPE-simple" />    
-	<property name="version" value="20130331"/>
+	<property name="version" value="0.4.2"/>
 	    
 	<property name="m2Repository" value="../../../.m2/repository"/>	
     <path id="Maven Dependencies.libraryclasspath">
-        <pathelement location="docx4j-nightly-20130331.jar"/>
+        <!--  These built using maven, with correct sourceEncoding -->
+        <pathelement location="${m2Repository}/org/docx4j/docx4j/3.0.0-SNAPSHOT/docx4j-3.0.0-SNAPSHOT.jar"/>
+        <pathelement location="${m2Repository}/org/docx4j/docx4j-ImportXHTML/3.0.0-SNAPSHOT/docx4j-ImportXHTML-3.0.0-SNAPSHOT.jar"/>
+        <pathelement location="${m2Repository}/org/docx4j/xhtmlrenderer/1.0.1-SNAPSHOT/xhtmlrenderer-1.0.1-SNAPSHOT.jar"/>
+        
+        <pathelement location="${m2Repository}/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar"/>
+        <pathelement location="${m2Repository}/org/slf4j/slf4j-log4j12/1.7.5/slf4j-log4j12-1.7.5.jar"/>
+        <pathelement location="${m2Repository}/log4j/log4j/1.2.17/log4j-1.2.17.jar"/>
+        
         <pathelement location="${m2Repository}/javax/servlet/servlet-api/2.5/servlet-api-2.5.jar"/>
         <pathelement location="${m2Repository}/javax/mail/mail/1.4/mail-1.4.jar"/>
         <pathelement location="${m2Repository}/javax/activation/activation/1.1/activation-1.1.jar"/>
-        <pathelement location="${m2Repository}/org/docx4j/xhtmlrenderer/1.0.1-SNAPSHOT/xhtmlrenderer-1.0.1-SNAPSHOT.jar"/>
         <pathelement location="${m2Repository}/com/lowagie/itext/2.1.7/itext-2.1.7.jar"/>
         <pathelement location="${m2Repository}/org/plutext/jaxb-svg11/1.0.2/jaxb-svg11-1.0.2.jar"/>
         <pathelement location="${m2Repository}/org/plutext/jaxb-xslfo/1.0.1/jaxb-xslfo-1.0.1.jar"/>
@@ -75,22 +82,19 @@
         <path refid="Maven Dependencies.libraryclasspath"/>
     </path>
     <target name="init">
-        <mkdir dir="target/classes"/>
-        <copy includeemptydirs="false" todir="target/classes">
-            <fileset dir="src/main/java">
-                <exclude name="**/*.java"/>
-            </fileset>
-        </copy>
+        <mkdir dir="target/${xapp.app.name}/WEB-INF/classes" />
     </target>
     <target name="clean">
-        <delete dir="target/classes"/>
+        <delete dir="target/${xapp.app.name}/WEB-INF/classes" />
     </target>
     <target depends="clean" name="cleanall"/>
     <target depends="build-subprojects,build-project" name="build"/>
     <target name="build-subprojects"/>
+    
+    
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="target/classes" source="${source}" target="${target}">
+        <javac debug="true" debuglevel="${debuglevel}" destdir="target/${xapp.app.name}/WEB-INF/classes" source="${source}" target="${target}">
             <src path="src/main/java"/>
             <classpath refid="webapp-simple.classpath"/>
         </javac>
