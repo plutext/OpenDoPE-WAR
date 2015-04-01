@@ -24,36 +24,40 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import javax.xml.bind.JAXBContext;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.docx4j.convert.in.xhtml.XHTMLImporter;
+import org.docx4j.XmlUtils;
+import org.docx4j.convert.in.xhtml.XHTMLImporterImpl;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
 import org.docx4j.convert.out.html.AbstractHtmlExporter.HtmlSettings;
 import org.docx4j.convert.out.html.HtmlExporterNG2;
+import org.docx4j.convert.out.pdf.viaXSLFO.PdfSettings;
 import org.docx4j.model.datastorage.BindingHandler;
+import org.docx4j.model.datastorage.CustomXmlDataStoragePartSelector;
 import org.docx4j.model.datastorage.OpenDoPEHandler;
 import org.docx4j.model.datastorage.OpenDoPEIntegrity;
 import org.docx4j.model.datastorage.RemovalHandler;
@@ -63,13 +67,12 @@ import org.docx4j.openpackaging.io.LoadFromZipNG;
 import org.docx4j.openpackaging.io.SaveToZipFile;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.CustomXmlDataStoragePart;
-import org.docx4j.wml.RFonts;
-import org.opendope.CustomXmlUtils;
+import org.docx4j.wml.Document;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.core.header.FormDataContentDisposition;
-import com.sun.jersey.multipart.FormDataParam;
 
 @Path("/both")  // must match form action
 public class SubmitBoth {
@@ -118,10 +121,17 @@ public class SubmitBoth {
 					cssWhiteList.add(line);
 				}
 			}
-			XHTMLImporter.setCssWhiteList(cssWhiteList);
+			XHTMLImporterImpl.setCssWhiteList(cssWhiteList);
 		} catch (IOException e) {
 			log.warn("CSS-WhiteList not found", e);
 		}
+		
+		
+        // demo font mapping
+//		RFonts rfonts = org.docx4j.jaxb.Context.getWmlObjectFactory().createRFonts();
+//		rfonts.setAscii("Comic Sans MS");
+//        XHTMLImporterImpl.addFontMapping("Century Gothic", rfonts);
+		
 		
 	}
     
@@ -139,17 +149,17 @@ public class SubmitBoth {
 				+"<title>OpenDoPE injection</title></head>"
 				+ "<body>"
 				
-				+ "<script type=\"text/javascript\">"
-				+ "function OnSubmitForm()"
-				+ "{"
-				+ "  if(document.uploadForm.format.checked == true) {"
-				+ "    document.uploadForm.action =\"both?format=html\";"
-				+ "  } else  {"
-				+ "    document.uploadForm.action =\"both\";"
-				+ "  }"
-				+ "  return true;"
-				+ "}"
-				+ "</script>"	
+//				+ "<script type=\"text/javascript\">"
+//				+ "function OnSubmitForm()"
+//				+ "{"
+//				+ "  if(document.uploadForm.format.checked == true) {"
+//				+ "    document.uploadForm.action =\"both?format=html\";"
+//				+ "  } else  {"
+//				+ "    document.uploadForm.action =\"both\";"
+//				+ "  }"
+//				+ "  return true;"
+//				+ "}"
+//				+ "</script>"	
 				
 				+ "<form name=\"uploadForm\" action=\"both\" " 
 				+		" onsubmit=\"return OnSubmitForm();\" "
@@ -160,7 +170,12 @@ public class SubmitBoth {
 				+ "<label for=\"" + KEY_DOCX + "\">docx template:</label> "
 				+ "<input type=\"file\" name=\"" + KEY_DOCX + "\" id=\"" + KEY_DOCX + "\" /> "
 				+ "<br/>"
-				+ "<input type=\"checkbox\" name=\"format\" value=\"HTML\" checked=\"true\">as HTML</input>"
+				+ "<input type=\"radio\" name=\"format\" value=\"docx\" >as DOCX</input>"
+				+ "<input type=\"radio\" name=\"format\" value=\"html\" >as HTML</input>"
+				+ "<input type=\"radio\" name=\"format\" value=\"pdf\" >as PDF</input>"
+				+ "<br/>"
+				+ "<input type=\"checkbox\" name=\"processTocField\"  value=\"true\">process ToC field</input>"
+				+ "<input type=\"checkbox\" name=\"TocPageNumbers\"  value=\"true\">include page numbers (SLOW)</input>"
 				+ "<br/>"
 				+ "<input type=\"submit\" name=\"submit\" value=\"Submit\" /> "
 				+ "</form>" + "</body></html>";
@@ -223,7 +238,7 @@ public class SubmitBoth {
 	 */
 
 	@POST
-	@Consumes("multipart/form-data")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces( {"application/vnd.openxmlformats-officedocument.wordprocessingml.document" , 
 				"text/html"})
 	public Response processForm(
@@ -233,7 +248,9 @@ public class SubmitBoth {
 			@FormDataParam("xmlfile") FormDataContentDisposition xmlFileDetail,
 			@FormDataParam("docx") InputStream docxInputStream,
 			@FormDataParam("docx") FormDataContentDisposition docxFileDetail,
-			@QueryParam("format") String format
+			@FormDataParam("format") String format,
+			@FormDataParam("processTocField") boolean processTocField,
+			@FormDataParam("TocPageNumbers") boolean tocPageNumbers
 			) throws Docx4JException, IOException {
 		
 //		log.info("servletRequest.getCharacterEncoding(): " + servletRequest.getCharacterEncoding());
@@ -257,9 +274,10 @@ public class SubmitBoth {
 		// For XHTML Import, only honour CSS on the white list
 		initWhitelist();
 		
-		// XHTML Import: no need to add a mapping, if docx defaults are to be used
-		//addFontMapping(String cssFontFamily, RFonts rFonts)
-		
+		// XHTML Import: no need to add a mapping, if docx defaults are to be used,
+		// for fonts in docx4j's MicrosoftFonts.xml.
+		// Helvetica is not there.
+		XHTMLImporterImpl.addFontMapping("helvetica", "Helvetica");		
 		
 		final WordprocessingMLPackage wordMLPackage;
 
@@ -294,13 +312,9 @@ public class SubmitBoth {
 		wordMLPackage = tmpPkg;
 		String filePrefix = docxname + "_" + dataname + "_" + now("yyyyMMddHHmmss"); // add ss or ssSSSS if you wish
 				
-		// Find custom xml item id
-		String itemId = CustomXmlUtils.getCustomXmlItemId(wordMLPackage).toLowerCase();
-		System.out.println("Looking for item id: " + itemId);
-		
-		// Inject data_file.xml		
+		// Find custom xml item id and inject data_file.xml		
 		CustomXmlDataStoragePart customXmlDataStoragePart 
-			= (CustomXmlDataStoragePart)wordMLPackage.getCustomXmlDataStorageParts().get(itemId);
+			= CustomXmlDataStoragePartSelector.getCustomXmlDataStoragePart(wordMLPackage);		
 		if (customXmlDataStoragePart==null) {
 			throw new WebApplicationException(
 					new Docx4JException("Couldn't find CustomXmlDataStoragePart"), 
@@ -336,8 +350,13 @@ public class SubmitBoth {
 		
 		// Apply the bindings
 		// Convert hyperlinks, using this style
-		BindingHandler.setHyperlinkStyle(hyperlinkStyleId);				
-		BindingHandler.applyBindings(wordMLPackage);
+		BindingHandler.setHyperlinkStyle(hyperlinkStyleId);	
+		
+		AtomicInteger bookmarkId = odh.getNextBookmarkId();
+		BindingHandler bh = new BindingHandler(wordMLPackage);
+		bh.setStartingIdForNewBookmarks(bookmarkId);
+		bh.applyBindings();
+		
 		if (log.isDebugEnabled()) {			
 			try {
 				File save_bound = new File( System.getProperty("java.io.tmpdir") 
@@ -353,6 +372,53 @@ public class SubmitBoth {
 //			);			
 		}		
 		
+		
+		// Update TOC .. before RemovalHandler!
+		if (processTocField) {
+			
+			log.debug("toc processing requested");
+			
+			// Use reflection, so this WAR can be built
+			// by users who don't have the Enterprise jar
+			try {
+				Class<?> tocGenerator = Class.forName("com.plutext.docx.toc.TocGenerator");
+				
+				Constructor ctor = tocGenerator.getDeclaredConstructor(WordprocessingMLPackage.class);
+				Object tocGeneratorObj = ctor.newInstance(wordMLPackage);				
+				
+				//Method method = documentBuilder.getMethod("merge", wmlPkgList.getClass());			
+				Method[] methods = tocGenerator.getMethods(); 
+				Method method = null;
+				for (int j=0; j<methods.length; j++) {
+					System.out.println(methods[j].getName());
+					if (methods[j].getName().equals("updateToc")
+							&& methods[j].getParameterTypes().length==1) {
+						method = methods[j];
+						break;
+					}
+				}			
+				if (method==null) {
+					log.error("toc processing requested, but Enterprise jar not available");				
+				} else {
+				
+					Document contentBackup = XmlUtils.deepCopy(wordMLPackage.getMainDocumentPart().getJaxbElement());
+					try {
+//						TocGenerator.updateToc(wordMLPackage, tocPageNumbers);
+						method.invoke(tocGeneratorObj, !tocPageNumbers);
+					} catch (Exception e1) {
+						log.error(e1.getMessage(), e1);
+						log.error("Omitting TOC; generate that in Word");
+						wordMLPackage.getMainDocumentPart().setJaxbElement(contentBackup);
+//						TocGenerator.updateToc(wordMLPackage, true);
+					}
+				}
+				
+			} catch (Exception e) {
+				log.error("toc processing requested, but Enterprise jar not available");				
+				log.error(e.getMessage(), e);
+			}			
+		}
+		
 		// Strip content controls: you MUST do this 
 		// if you are processing hyperlinks
 		RemovalHandler rh = new RemovalHandler();
@@ -366,36 +432,73 @@ public class SubmitBoth {
 			} catch (Exception e) {
 				log.error(e.getMessage(), e);
 			}
-		}		
+		}
+		
 				
-		if (format!=null && format.equals("html") ) {		
-			// Return html
-			final AbstractHtmlExporter exporter = new HtmlExporterNG2(); 	
-	    	final HtmlSettings htmlSettings = new HtmlSettings();
-	    	htmlSettings.setImageDirPath(htmlImageDirPath);	    	
-			htmlSettings.setImageTargetUri(htmlImageTargetUri); 
-	
-			ResponseBuilder builder = Response.ok(
+		if (format!=null) {
 			
-				new StreamingOutput() {
-					
-					public void write(OutputStream output) throws IOException, WebApplicationException {
+			if (format.equals("html") ) {		
+		
+				// Return html
+				final AbstractHtmlExporter exporter = new HtmlExporterNG2(); 	
+		    	final HtmlSettings htmlSettings = new HtmlSettings();
+		    	htmlSettings.setImageDirPath(htmlImageDirPath);	    	
+				htmlSettings.setImageTargetUri(htmlImageTargetUri); 
+		
+				ResponseBuilder builder = Response.ok(
+				
+					new StreamingOutput() {
 						
-						javax.xml.transform.stream.StreamResult result 
-							= new javax.xml.transform.stream.StreamResult(output);
-						
-						try {
-							exporter.html(wordMLPackage, result, htmlSettings);
-						} catch (Exception e) {
-							throw new WebApplicationException(e,
-									Status.INTERNAL_SERVER_ERROR);
+						public void write(OutputStream output) throws IOException, WebApplicationException {
+							
+							javax.xml.transform.stream.StreamResult result 
+								= new javax.xml.transform.stream.StreamResult(output);
+							
+							try {
+								exporter.html(wordMLPackage, result, htmlSettings);
+							} catch (Exception e) {
+								throw new WebApplicationException(e,
+										Status.INTERNAL_SERVER_ERROR);
+							}
+							
 						}
-						
 					}
-				}
-			);
-			builder.type("text/html");
-			return builder.build();
+				);
+				builder.type("text/html");
+				return builder.build();
+				
+			} else if (format.equals("pdf") ) {		
+				
+				final org.docx4j.convert.out.pdf.PdfConversion c 
+					= new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
+	
+				ResponseBuilder builder = Response.ok(
+					
+					new StreamingOutput() {				
+						public void write(OutputStream output) throws IOException, WebApplicationException {					
+					         try {
+					 			c.output(output, new PdfSettings() );
+							} catch (Docx4JException e) {
+								throw new WebApplicationException(e);
+							}							
+						}
+					}
+				);
+//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
+				builder.type("application/pdf");
+				
+				return builder.build();
+
+			} else if (format.equals("docx") ) {		
+				
+				// fall through to the below
+				
+			} else {
+				log.error("Unkown format: " + format);
+				return Response.ok("<p>Unknown format " + format + " </p>",
+						MediaType.APPLICATION_XHTML_XML_TYPE).build();				
+				
+			}
 		}
 		
 		// return a docx

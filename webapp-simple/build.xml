@@ -11,13 +11,18 @@
     <property name="target" value="1.6"/>
     <property name="source" value="1.6"/>
     <property name="xapp.app.name" value="OpenDoPE-simple" />    
-	<property name="version" value="0.4.2"/>
+	<property name="version" value="3.2.1"/>
 	    
 	<property name="m2Repository" value="../../../.m2/repository"/>	
+	
+	<!--  Note: generally this project is built using maven! -->
+	
+	
+	
     <path id="Maven Dependencies.libraryclasspath">
         <!--  These built using maven, with correct sourceEncoding -->
-        <pathelement location="${m2Repository}/org/docx4j/docx4j/3.0.0-SNAPSHOT/docx4j-3.0.0-SNAPSHOT.jar"/>
-        <pathelement location="${m2Repository}/org/docx4j/docx4j-ImportXHTML/3.0.0-SNAPSHOT/docx4j-ImportXHTML-3.0.0-SNAPSHOT.jar"/>
+        <pathelement location="${m2Repository}/org/docx4j/docx4j/3.2.0-SNAPSHOT/docx4j-3.2.0-SNAPSHOT.jar"/>
+        <pathelement location="${m2Repository}/org/docx4j/docx4j-ImportXHTML/3.2.0-SNAPSHOT/docx4j-ImportXHTML-3.2.0-SNAPSHOT.jar"/>
         <pathelement location="${m2Repository}/org/docx4j/xhtmlrenderer/1.0.1-SNAPSHOT/xhtmlrenderer-1.0.1-SNAPSHOT.jar"/>
         
         <pathelement location="${m2Repository}/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar"/>

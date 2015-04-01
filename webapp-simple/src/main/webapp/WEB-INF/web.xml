@@ -19,12 +19,15 @@
 </filter>	
 	  -->
   
+ 	<!--  This is JAX-RS 2.0 version.
+ 	      See https://github.com/aruld/jersey2-multipart-sample
+ 	      http://stackoverflow.com/questions/14288856/jersey-2-injection-source  -->
 	<servlet>
-		<servlet-name>Jersey REST Service</servlet-name>
-		<servlet-class>com.sun.jersey.spi.container.servlet.ServletContainer</servlet-class>
+		<servlet-name>services</servlet-name>
+			<servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
 		<init-param>
-			<param-name>com.sun.jersey.config.property.packages</param-name>
-			<param-value>org.opendope.webapp</param-value>
+			<param-name>javax.ws.rs.Application</param-name>
+			<param-value>org.opendope.webapp.JAXRS2Application</param-value>
 		</init-param>
 
 		<init-param>
@@ -41,8 +44,10 @@
 		</init-param>
 		<load-on-startup>1</load-on-startup>
 	</servlet>
+	
+	
 	<servlet-mapping>
-		<servlet-name>Jersey REST Service</servlet-name>
+		<servlet-name>services</servlet-name>
 		<url-pattern>/service/*</url-pattern>
 	</servlet-mapping>
 <!-- 	
