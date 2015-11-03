@@ -42,6 +42,13 @@
 			<param-name>HyperlinkStyleId</param-name>
 			<param-value>Hyperlink</param-value>
 		</init-param>
+		
+		<init-param>
+			<param-name>DocumentServicesEndpoint</param-name>
+			<param-value>http://localhost:9015/v1/00000000-0000-0000-0000-000000000000/convert</param-value>
+		</init-param>
+		
+		
 		<load-on-startup>1</load-on-startup>
 	</servlet>
 	

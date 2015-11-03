@@ -20,6 +20,7 @@
  */
 package org.opendope.webapp;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +51,7 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.xml.bind.JAXBContext;
 
 import org.apache.commons.io.IOUtils;
+import org.docx4j.Docx4J;
 import org.docx4j.XmlUtils;
 import org.docx4j.convert.in.xhtml.XHTMLImporterImpl;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
@@ -73,6 +75,11 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.plutext.converter.Converter;
+import com.plutext.converter.ConverterHttp;
+import com.plutext.converter.Format;
+import com.plutext.docx.toc.TocException;
+
 
 @Path("/both")  // must match form action
 public class SubmitBoth {
@@ -91,6 +98,8 @@ public class SubmitBoth {
     static String htmlImageTargetUri;
     static String htmlImageDirPath;
     
+    static String documentServicesEndpoint;
+    
     @PostConstruct
     public void readInitParams() {
     	
@@ -103,6 +112,9 @@ public class SubmitBoth {
         hyperlinkStyleId = servletConfig.getInitParameter("HyperlinkStyleId");
         htmlImageTargetUri = servletConfig.getInitParameter("HtmlImageTargetUri");
         htmlImageDirPath = servletConfig.getInitParameter("HtmlImageDirPath");
+
+    	log.info( servletConfig.getInitParameter("DocumentServicesEndpoint") );
+        documentServicesEndpoint = servletConfig.getInitParameter("DocumentServicesEndpoint");
         
     }     
 	
@@ -175,7 +187,7 @@ public class SubmitBoth {
 				+ "<input type=\"radio\" name=\"format\" value=\"pdf\" >as PDF</input>"
 				+ "<br/>"
 				+ "<input type=\"checkbox\" name=\"processTocField\"  value=\"true\">process ToC field</input>"
-				+ "<input type=\"checkbox\" name=\"TocPageNumbers\"  value=\"true\">include page numbers (SLOW)</input>"
+				+ "<input type=\"checkbox\" name=\"TocPageNumbers\"  value=\"true\">include page numbers</input>"
 				+ "<br/>"
 				+ "<input type=\"submit\" name=\"submit\" value=\"Submit\" /> "
 				+ "</form>" + "</body></html>";
@@ -355,6 +367,7 @@ public class SubmitBoth {
 		AtomicInteger bookmarkId = odh.getNextBookmarkId();
 		BindingHandler bh = new BindingHandler(wordMLPackage);
 		bh.setStartingIdForNewBookmarks(bookmarkId);
+
 		bh.applyBindings();
 		
 		if (log.isDebugEnabled()) {			
@@ -366,14 +379,10 @@ public class SubmitBoth {
 			} catch (Exception e) {
 				log.error(e.getMessage(), e);
 			}
-			
-//			System.out.println(
-//			XmlUtils.marshaltoString(wordMLPackage.getMainDocumentPart().getJaxbElement(), true, true)
-//			);			
 		}		
 		
 		
-		// Update TOC .. before RemovalHandler!
+		// Update TOC .. before RemovalHandler!  (why? because of ToC SDT)
 		if (processTocField) {
 			
 			log.debug("toc processing requested");
@@ -388,23 +397,33 @@ public class SubmitBoth {
 				
 				//Method method = documentBuilder.getMethod("merge", wmlPkgList.getClass());			
 				Method[] methods = tocGenerator.getMethods(); 
-				Method method = null;
+				Method methodUpdateToc = null;
+				Method methodSetDocumentServicesEndpoint = null;
+				Method methodSetStartingIdForNewBookmarks = null;
 				for (int j=0; j<methods.length; j++) {
-					System.out.println(methods[j].getName());
+//					System.out.println(methods[j].getName());
 					if (methods[j].getName().equals("updateToc")
 							&& methods[j].getParameterTypes().length==1) {
-						method = methods[j];
-						break;
+						methodUpdateToc = methods[j];
+					} else if (methods[j].getName().equals("setDocumentServicesEndpoint")) {
+						methodSetDocumentServicesEndpoint = methods[j];
+					} else if (methods[j].getName().equals("setStartingIdForNewBookmarks")) {
+						methodSetStartingIdForNewBookmarks = methods[j];
 					}
+
 				}			
-				if (method==null) {
+				if (methodUpdateToc==null) {
 					log.error("toc processing requested, but Enterprise jar not available");				
 				} else {
 				
 					Document contentBackup = XmlUtils.deepCopy(wordMLPackage.getMainDocumentPart().getJaxbElement());
 					try {
-//						TocGenerator.updateToc(wordMLPackage, tocPageNumbers);
-						method.invoke(tocGeneratorObj, !tocPageNumbers);
+						if (documentServicesEndpoint!=null) {
+							methodSetDocumentServicesEndpoint.invoke(tocGeneratorObj, documentServicesEndpoint);
+						}
+						methodSetStartingIdForNewBookmarks.invoke(tocGeneratorObj, bookmarkId);
+						methodUpdateToc.invoke(tocGeneratorObj, !tocPageNumbers);
+						
 					} catch (Exception e1) {
 						log.error(e1.getMessage(), e1);
 						log.error("Omitting TOC; generate that in Word");
@@ -423,6 +442,9 @@ public class SubmitBoth {
 		// if you are processing hyperlinks
 		RemovalHandler rh = new RemovalHandler();
 		rh.removeSDTs(wordMLPackage, Quantifier.ALL);
+		
+		
+		
 		if (log.isDebugEnabled()) {
 			try {
 				File save = new File( System.getProperty("java.io.tmpdir") 
@@ -467,27 +489,60 @@ public class SubmitBoth {
 				builder.type("text/html");
 				return builder.build();
 				
-			} else if (format.equals("pdf") ) {		
+			} else if (format.equals("pdf") ) {	
 				
-				final org.docx4j.convert.out.pdf.PdfConversion c 
-					= new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
-	
-				ResponseBuilder builder = Response.ok(
+				if (documentServicesEndpoint!=null) {
 					
-					new StreamingOutput() {				
-						public void write(OutputStream output) throws IOException, WebApplicationException {					
-					         try {
-					 			c.output(output, new PdfSettings() );
-							} catch (Docx4JException e) {
-								throw new WebApplicationException(e);
-							}							
-						}
-					}
-				);
-//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
-				builder.type("application/pdf");
+					final ByteArrayOutputStream tmpDocxFile = new ByteArrayOutputStream(); 
+					try {
+						Docx4J.save(wordMLPackage, tmpDocxFile, Docx4J.FLAG_SAVE_ZIP_FILE);
+					} catch (Exception e) {
+						throw new TocException("Error saving pkg as tmp file; " + e.getMessage(),e);
+					}   
+					
+			    	
+			    	// 
+					final Converter c = new ConverterHttp(documentServicesEndpoint); 
+
+					ResponseBuilder builder = Response.ok(
+							
+							new StreamingOutput() {				
+								public void write(OutputStream output) throws IOException, WebApplicationException {					
+							         try {
+							 			c.convert(tmpDocxFile.toByteArray(), Format.DOCX, Format.PDF, output);
+									} catch (Exception e) {
+										throw new WebApplicationException(e);
+									} 					
+								}
+							}
+						);
+		//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
+						builder.type("application/pdf");
+						
+						return builder.build();
+					
+				} else {
 				
-				return builder.build();
+					final org.docx4j.convert.out.pdf.PdfConversion c 
+						= new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
+		
+					ResponseBuilder builder = Response.ok(
+						
+						new StreamingOutput() {				
+							public void write(OutputStream output) throws IOException, WebApplicationException {					
+						         try {
+						 			c.output(output, new PdfSettings() );
+								} catch (Docx4JException e) {
+									throw new WebApplicationException(e);
+								}							
+							}
+						}
+					);
+	//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
+					builder.type("application/pdf");
+					
+					return builder.build();
+				}
 
 			} else if (format.equals("docx") ) {		
 				
