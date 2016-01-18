@@ -75,10 +75,10 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.plutext.converter.Converter;
-import com.plutext.converter.ConverterHttp;
-import com.plutext.converter.Format;
-import com.plutext.docx.toc.TocException;
+import org.docx4j.services.client.Converter;
+import org.docx4j.services.client.ConverterHttp;
+import org.docx4j.services.client.Format;
+import org.docx4j.toc.TocException;
 
 
 @Path("/both")  // must match form action
