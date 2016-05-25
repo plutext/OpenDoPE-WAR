@@ -57,7 +57,7 @@ import org.docx4j.convert.in.xhtml.XHTMLImporterImpl;
 import org.docx4j.convert.out.html.AbstractHtmlExporter;
 import org.docx4j.convert.out.html.AbstractHtmlExporter.HtmlSettings;
 import org.docx4j.convert.out.html.HtmlExporterNG2;
-import org.docx4j.convert.out.pdf.viaXSLFO.PdfSettings;
+//import org.docx4j.convert.out.pdf.viaXSLFO.PdfSettings;
 import org.docx4j.model.datastorage.BindingHandler;
 import org.docx4j.model.datastorage.CustomXmlDataStoragePartSelector;
 import org.docx4j.model.datastorage.OpenDoPEHandler;
@@ -523,25 +523,30 @@ public class SubmitBoth {
 					
 				} else {
 				
-					final org.docx4j.convert.out.pdf.PdfConversion c 
-						= new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
-		
-					ResponseBuilder builder = Response.ok(
-						
-						new StreamingOutput() {				
-							public void write(OutputStream output) throws IOException, WebApplicationException {					
-						         try {
-						 			c.output(output, new PdfSettings() );
-								} catch (Docx4JException e) {
-									throw new WebApplicationException(e);
-								}							
-							}
-						}
-					);
-	//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
-					builder.type("application/pdf");
+//					final org.docx4j.convert.out.pdf.PdfConversion c 
+//						= new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
+//		
+//					ResponseBuilder builder = Response.ok(
+//						
+//						new StreamingOutput() {				
+//							public void write(OutputStream output) throws IOException, WebApplicationException {					
+//						         try {
+//						 			c.output(output, new PdfSettings() );
+//								} catch (Docx4JException e) {
+//									throw new WebApplicationException(e);
+//								}							
+//							}
+//						}
+//					);
+//	//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
+//					builder.type("application/pdf");
+//					
+//					return builder.build();
 					
-					return builder.build();
+					log.error("No support for format: " + format);
+					return Response.ok("<p>No support for format " + format + " </p>",
+							MediaType.APPLICATION_XHTML_XML_TYPE).build();				
+					
 				}
 
 			} else if (format.equals("docx") ) {		
@@ -549,7 +554,7 @@ public class SubmitBoth {
 				// fall through to the below
 				
 			} else {
-				log.error("Unkown format: " + format);
+				log.error("Unknown format: " + format);
 				return Response.ok("<p>Unknown format " + format + " </p>",
 						MediaType.APPLICATION_XHTML_XML_TYPE).build();				
 				
