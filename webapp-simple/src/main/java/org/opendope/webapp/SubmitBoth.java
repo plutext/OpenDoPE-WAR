@@ -98,8 +98,6 @@ public class SubmitBoth {
     static String htmlImageTargetUri;
     static String htmlImageDirPath;
     
-    static String documentServicesEndpoint;
-    
     @PostConstruct
     public void readInitParams() {
     	
@@ -112,9 +110,6 @@ public class SubmitBoth {
         hyperlinkStyleId = servletConfig.getInitParameter("HyperlinkStyleId");
         htmlImageTargetUri = servletConfig.getInitParameter("HtmlImageTargetUri");
         htmlImageDirPath = servletConfig.getInitParameter("HtmlImageDirPath");
-
-    	log.info( servletConfig.getInitParameter("DocumentServicesEndpoint") );
-        documentServicesEndpoint = servletConfig.getInitParameter("DocumentServicesEndpoint");
         
     }     
 	
@@ -398,15 +393,12 @@ public class SubmitBoth {
 				//Method method = documentBuilder.getMethod("merge", wmlPkgList.getClass());			
 				Method[] methods = tocGenerator.getMethods(); 
 				Method methodUpdateToc = null;
-				Method methodSetDocumentServicesEndpoint = null;
 				Method methodSetStartingIdForNewBookmarks = null;
 				for (int j=0; j<methods.length; j++) {
 //					System.out.println(methods[j].getName());
 					if (methods[j].getName().equals("updateToc")
 							&& methods[j].getParameterTypes().length==1) {
 						methodUpdateToc = methods[j];
-					} else if (methods[j].getName().equals("setDocumentServicesEndpoint")) {
-						methodSetDocumentServicesEndpoint = methods[j];
 					} else if (methods[j].getName().equals("setStartingIdForNewBookmarks")) {
 						methodSetStartingIdForNewBookmarks = methods[j];
 					}
@@ -418,9 +410,6 @@ public class SubmitBoth {
 				
 					Document contentBackup = XmlUtils.deepCopy(wordMLPackage.getMainDocumentPart().getJaxbElement());
 					try {
-						if (documentServicesEndpoint!=null) {
-							methodSetDocumentServicesEndpoint.invoke(tocGeneratorObj, documentServicesEndpoint);
-						}
 						methodSetStartingIdForNewBookmarks.invoke(tocGeneratorObj, bookmarkId);
 						methodUpdateToc.invoke(tocGeneratorObj, !tocPageNumbers);
 						
