@@ -413,7 +413,7 @@ public class SubmitBoth {
 
 				}			
 				if (methodUpdateToc==null) {
-					log.error("toc processing requested, but Enterprise jar not available");				
+					log.error("toc processing requested, but docx4j >3.3.0 jar not available");				
 				} else {
 				
 					Document contentBackup = XmlUtils.deepCopy(wordMLPackage.getMainDocumentPart().getJaxbElement());
@@ -491,25 +491,12 @@ public class SubmitBoth {
 				
 			} else if (format.equals("pdf") ) {	
 				
-				if (documentServicesEndpoint!=null) {
-					
-					final ByteArrayOutputStream tmpDocxFile = new ByteArrayOutputStream(); 
-					try {
-						Docx4J.save(wordMLPackage, tmpDocxFile, Docx4J.FLAG_SAVE_ZIP_FILE);
-					} catch (Exception e) {
-						throw new TocException("Error saving pkg as tmp file; " + e.getMessage(),e);
-					}   
-					
-			    	
-			    	// 
-					final Converter c = new ConverterHttp(documentServicesEndpoint); 
-
 					ResponseBuilder builder = Response.ok(
 							
 							new StreamingOutput() {				
 								public void write(OutputStream output) throws IOException, WebApplicationException {					
 							         try {
-							 			c.convert(tmpDocxFile.toByteArray(), Format.DOCX, Format.PDF, output);
+											Docx4J.toPDF(wordMLPackage, output);
 									} catch (Exception e) {
 										throw new WebApplicationException(e);
 									} 					
@@ -518,36 +505,7 @@ public class SubmitBoth {
 						);
 		//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
 						builder.type("application/pdf");
-						
 						return builder.build();
-					
-				} else {
-				
-//					final org.docx4j.convert.out.pdf.PdfConversion c 
-//						= new org.docx4j.convert.out.pdf.viaXSLFO.Conversion(wordMLPackage);
-//		
-//					ResponseBuilder builder = Response.ok(
-//						
-//						new StreamingOutput() {				
-//							public void write(OutputStream output) throws IOException, WebApplicationException {					
-//						         try {
-//						 			c.output(output, new PdfSettings() );
-//								} catch (Docx4JException e) {
-//									throw new WebApplicationException(e);
-//								}							
-//							}
-//						}
-//					);
-//	//						builder.header("Content-Disposition", "attachment; filename=output.pdf");
-//					builder.type("application/pdf");
-//					
-//					return builder.build();
-					
-					log.error("No support for format: " + format);
-					return Response.ok("<p>No support for format " + format + " </p>",
-							MediaType.APPLICATION_XHTML_XML_TYPE).build();				
-					
-				}
 
 			} else if (format.equals("docx") ) {		
 				
