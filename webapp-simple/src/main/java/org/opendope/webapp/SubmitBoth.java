@@ -390,7 +390,7 @@ public class SubmitBoth {
 			// Use reflection, so this WAR can be built
 			// by users who don't have the Enterprise jar
 			try {
-				Class<?> tocGenerator = Class.forName("com.plutext.docx.toc.TocGenerator");
+				Class<?> tocGenerator = Class.forName("org.docx4j.toc.TocGenerator");
 				
 				Constructor ctor = tocGenerator.getDeclaredConstructor(WordprocessingMLPackage.class);
 				Object tocGeneratorObj = ctor.newInstance(wordMLPackage);				
